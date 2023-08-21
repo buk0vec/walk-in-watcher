@@ -1,9 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 
+import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -15,7 +17,6 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { useState } from "react"
 
 const phoneNumberSchema = z
   .union([z.string().min(10).max(10), z.string().length(0)])
@@ -23,6 +24,7 @@ const phoneNumberSchema = z
   .transform((e) => (e === "" ? undefined : e))
 
 const formSchema = z.object({
+  name: z.string().min(1),
   email: z
     .string()
     .regex(/^[a-zA-Z0-9+_.-]*$/)
@@ -43,8 +45,21 @@ export const SupportForm = () => {
     },
   })
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true)
+    const { data, error } = await supabase
+      .from("cases")
+      .insert({
+        name: values.name,
+        username: values.email,
+        summary: values.summary,
+        phone_number: values.phone,
+      })
+    if (error) {
+      console.error(error)
+      setIsSubmitting(false)
+      return
+    }
     setSuccess(true)
     setIsSubmitting(false)
   }
@@ -63,6 +78,23 @@ export const SupportForm = () => {
         >
           <FormField
             control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input
+                    className="max-w-2xl"
+                    placeholder="Musty Mustang"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem>
@@ -74,7 +106,9 @@ export const SupportForm = () => {
                       placeholder="mustymustang"
                       {...field}
                     />
-                    <p className="text-sm text-muted-foreground">@calpoly.edu</p>
+                    <p className="text-sm text-muted-foreground">
+                      @calpoly.edu
+                    </p>
                   </div>
                 </FormControl>
                 <FormDescription>
@@ -137,6 +171,4 @@ export const SupportForm = () => {
       <Button onClick={() => reset()}>Submit another ticket</Button>
     </div>
   )
-
-
 }
