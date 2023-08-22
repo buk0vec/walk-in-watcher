@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { set, useForm } from "react-hook-form"
 import * as z from "zod"
 
 import { supabase } from "@/lib/supabase"
@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { useToast } from "@/components/ui/use-toast"
 
 const phoneNumberSchema = z
   .union([z.string().min(10).max(10), z.string().length(0)])
@@ -42,21 +43,25 @@ export const SupportForm = () => {
       email: "",
       summary: "",
       phone: "",
+      name: "",
     },
   })
+  const { toast } = useToast()
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true)
-    const { data, error } = await supabase
-      .from("cases")
-      .insert({
-        name: values.name,
-        username: values.email,
-        summary: values.summary,
-        phone_number: values.phone,
-      })
+    const { error } = await supabase.from("cases").insert({
+      name: values.name,
+      username: values.email,
+      summary: values.summary,
+      phone_number: values.phone,
+    })
     if (error) {
-      console.error(error)
+      toast({
+        title: "Something went wrong",
+        description: error.message,
+        variant: "destructive",
+      })
       setIsSubmitting(false)
       return
     }
@@ -64,10 +69,23 @@ export const SupportForm = () => {
     setIsSubmitting(false)
   }
 
-  const reset = () => {
+  const reset = useCallback(() => {
     form.reset()
     setSuccess(false)
-  }
+    console.log("Reset")
+  }, [form])
+
+  /* Return to form after 20 seconds */
+  useEffect(() => {
+    if (success) {
+      const t = setTimeout(() => {
+        if (success) {
+          reset()
+        }
+      }, 20000)
+      return () => clearTimeout(t)
+    }
+  }, [success, reset])
 
   if (!success) {
     return (
@@ -168,7 +186,7 @@ export const SupportForm = () => {
       <p className="text-lg text-center">
         We will assist you as soon as possible
       </p>
-      <Button onClick={() => reset()}>Submit another ticket</Button>
+      <Button onClick={() => reset()}>Go back</Button>
     </div>
   )
 }
