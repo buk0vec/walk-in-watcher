@@ -53,22 +53,21 @@ export const CasesTable = () => {
       id: "summary",
       header: "Summary",
       cell: (props) => (
-        <a
-          role="button"
-          onClick={() => openModal(props.getValue()[1])}
+        <p
           className="underline underline-offset-1 hover:text-primary"
-          tabIndex={0}
         >
           {props.getValue()[0]}
-        </a>
+        </p>
       ),
     }),
     ch.accessor((c) => c.phone_number, {
       id: "phone_number",
       header: "Phone Number",
     }),
-    ch.accessor((c) => moment(c.created_at).fromNow(), {
+    ch.accessor((c) => moment(c.created_at), {
       id: "created_at",
+      cell: c => c.getValue().fromNow(),
+      enableColumnFilter: true,
       header: "Date Entered",
     }),
     ch.accessor(
@@ -163,6 +162,27 @@ export const CasesTable = () => {
     }
   }, [toast])
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>, id: string, idx: number) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      e.stopPropagation()
+      openModal(id)
+    }
+    else if (e.key === "ArrowDown" && idx != table.getRowModel().rows.length - 1) {
+      e.preventDefault()
+      e.stopPropagation()
+      const next = e.currentTarget.nextSibling as HTMLTableRowElement | null
+      next?.focus()
+    }
+    else if (e.key === "ArrowUp" && idx != 0) {
+      e.preventDefault()
+      e.stopPropagation()
+      const prev = e.currentTarget.previousSibling as HTMLTableRowElement | null
+      prev?.focus()
+    }
+
+  }
+
   return (
     <>
     <CaseModal open={modalOpen} close={() => setModalOpen(false)} data={modalCase} />
@@ -188,10 +208,14 @@ export const CasesTable = () => {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map((row, idx) => (
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  onClick={() => window.getSelection()?.type != 'Range' && openModal(row.original.id)}
+                  tabIndex={idx + 20}
+                  onKeyDown={e => handleKeyDown(e, row.original.id, idx)}
+                  className={'cursor-pointer'}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
