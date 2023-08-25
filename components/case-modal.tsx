@@ -1,14 +1,20 @@
 "use client"
 
-import { useMemo } from "react"
-import { X } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
+import FocusTrap from "focus-trap-react"
 import moment from "moment"
 
 import { cn } from "@/lib/utils"
 
 import type { Case } from "./cases-table"
 import { Button } from "./ui/button"
-import FocusTrap from "focus-trap-react"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card"
 
 interface CaseModalProps {
   open: boolean
@@ -23,39 +29,83 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
     [data]
   )
 
+  const escapeCheck = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") close()
+  }, [close])
+
+  useEffect(() => {
+    if (open) {
+      window.addEventListener("keydown", escapeCheck)
+    }
+    return () => {
+      window.removeEventListener("keydown", escapeCheck)
+    }
+  }, [open])
+
   return (
-    <FocusTrap active={open}>
+    <FocusTrap active={open} focusTrapOptions={{escapeDeactivates: false}}>
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 h-screen w-screen bg-card/0 fade-in-60 fade-out-0 sm:top-[calc(4rem+1px)] sm:h-[calc(100vh-4rem-1px)]",
+          "fixed left-0 top-0 z-50 h-screen w-screen bg-[#154734]/0 fade-in-0 fade-out-0",
           "backdrop-blur-sm",
           open ? "flex" : "hidden"
         )}
-        onKeyDown={(e) => e.key === "Escape" && close()}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) close()
+          return true
+        }}
       >
-        <div className="container" onClick={() => close()}>
-          <section
-            className="mx-auto mt-4 flex flex-col rounded-lg border-4 px-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex flex-row items-start justify-between">
-              <div className="flex flex-col items-baseline sm:flex-row sm:gap-2">
-                <p className="hyphens-auto text-3xl font-bold sm:text-4xl">
-                  {data?.name ?? "Customer"}
-                </p>
-                <p className="h-full text-base font-semibold text-muted-foreground ">
-                  {data?.username}
+        <div className="container mt-[5.5rem] md:mt-[6.5rem] h-fit">
+          <Card className=" translate-x-0 translate-y-0">
+            <CardHeader>
+              <div className="flex min-w-full flex-row items-start justify-between">
+                <CardTitle>{data?.name ?? "Customer"}</CardTitle>{" "}
+                <p
+                  className="cursor-pointer text-muted-foreground underline underline-offset-2 hover:opacity-50"
+                  tabIndex={0}
+                  onClick={() => close()}
+                  onKeyDown={({ key, currentTarget, target }) => {
+                    if ((key === "Enter" || key === " ") &&
+                      currentTarget === target) {
+                        close()
+                      }
+                    return true
+                  }}
+                >
+                  Close
                 </p>
               </div>
-              <button className="mt-1" onClick={() => close()} >
-                <X className="h-5 w-5 sm:h-8 sm:w-8" />
-              </button>
-            </div>
-            <p className="mt-2 text-base text-muted-foreground">Summary</p>
-            <p>{data?.summary}</p>
-            <p className="mt-2 text-base text-muted-foreground">Date Created</p>
-            <p>{date}</p>
-          </section>
+              <CardDescription>{data?.username}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 grid-rows-2 gap-y-4">
+                <div>
+                  <p className="mt-2 text-base text-muted-foreground">
+                    Summary
+                  </p>
+                  <p>{data?.summary}</p>
+                </div>
+                <div>
+                  <p className="mt-2 text-base text-muted-foreground">
+                    Date Created
+                  </p>
+                  <p>{date}</p>
+                </div>
+                <div>
+                  <p className="mt-2 text-base text-muted-foreground">Email</p>
+                  <p>{`${data?.username ?? ""}${
+                    data?.username.includes("@") ? "" : "@calpoly.edu"
+                  }`}</p>
+                </div>
+                <div>
+                  <p className="mt-2 text-base text-muted-foreground">
+                    Phone Number
+                  </p>
+                  <p>{data?.phone_number ?? "N/A"}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </aside>
     </FocusTrap>

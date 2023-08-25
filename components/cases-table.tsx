@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { RealtimeChannel } from "@supabase/supabase-js"
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
@@ -12,7 +11,12 @@ import { createColumnHelper } from "@tanstack/table-core"
 import moment from "moment"
 
 import { supabase } from "@/lib/supabase"
-import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/use-toast"
+
+import { Database } from "../supabase/db_types"
+import { CaseModal } from "./case-modal"
+import { Button } from "./ui/button"
+import { HorizontalScrollArea, ScrollArea } from "./ui/scroll-area"
 import {
   Table,
   TableBody,
@@ -20,12 +24,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { useToast } from "@/components/ui/use-toast"
-
-import { Database } from "../supabase/db_types"
-import { Button } from "./ui/button"
-import { CaseModal } from "./case-modal"
+} from "./ui/table"
 
 export type Case = Database["public"]["Tables"]["cases"]["Row"]
 
@@ -53,9 +52,7 @@ export const CasesTable = () => {
       id: "summary",
       header: "Summary",
       cell: (props) => (
-        <p
-          className="underline underline-offset-1 hover:text-primary"
-        >
+        <p className="underline underline-offset-1 hover:text-primary">
           {props.getValue()[0]}
         </p>
       ),
@@ -66,7 +63,7 @@ export const CasesTable = () => {
     }),
     ch.accessor((c) => moment(c.created_at), {
       id: "created_at",
-      cell: c => c.getValue().fromNow(),
+      cell: (c) => c.getValue().fromNow(),
       enableColumnFilter: true,
       header: "Date Entered",
     }),
@@ -162,31 +159,41 @@ export const CasesTable = () => {
     }
   }, [toast])
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>, id: string, idx: number) => {
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLTableRowElement>,
+    id: string,
+    idx: number
+  ) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault()
       e.stopPropagation()
       openModal(id)
-    }
-    else if (e.key === "ArrowDown" && idx != table.getRowModel().rows.length - 1) {
+    } else if (
+      e.key === "ArrowDown" &&
+      idx != table.getRowModel().rows.length - 1
+    ) {
       e.preventDefault()
       e.stopPropagation()
       const next = e.currentTarget.nextSibling as HTMLTableRowElement | null
       next?.focus()
-    }
-    else if (e.key === "ArrowUp" && idx != 0) {
+    } else if (e.key === "ArrowUp" && idx != 0) {
       e.preventDefault()
       e.stopPropagation()
       const prev = e.currentTarget.previousSibling as HTMLTableRowElement | null
       prev?.focus()
     }
-
   }
+
+  const close = useCallback(() => setModalOpen(false), [])
 
   return (
     <>
-    <CaseModal open={modalOpen} close={() => setModalOpen(false)} data={modalCase} />
-      <div className="w-full max-w-full overflow-x-hidden rounded-md border">
+      <CaseModal
+        open={modalOpen}
+        close={close}
+        data={modalCase}
+      />
+      <HorizontalScrollArea className="w-full max-w-full rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -212,10 +219,13 @@ export const CasesTable = () => {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  onClick={() => window.getSelection()?.type != 'Range' && openModal(row.original.id)}
+                  onClick={() =>
+                    window.getSelection()?.type != "Range" &&
+                    openModal(row.original.id)
+                  }
                   tabIndex={idx + 20}
-                  onKeyDown={e => handleKeyDown(e, row.original.id, idx)}
-                  className={'cursor-pointer'}
+                  onKeyDown={(e) => handleKeyDown(e, row.original.id, idx)}
+                  className={"cursor-pointer"}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -233,13 +243,13 @@ export const CasesTable = () => {
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  No cases found.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-      </div>
+      </HorizontalScrollArea>
     </>
   )
 }

@@ -183,7 +183,7 @@ export const SupportForm = () => {
       <h2 className="text-xl font-semibold tracking-tighter md:text-4xl">
         Thank you!
       </h2>
-      <p className="text-lg text-center">
+      <p className="text-center text-lg">
         We will assist you as soon as possible
       </p>
       <Button onClick={() => reset()}>Go back</Button>
