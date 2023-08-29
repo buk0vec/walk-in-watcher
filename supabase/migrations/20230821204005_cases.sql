@@ -1,3 +1,14 @@
+begin;
+
+-- remove the supabase_realtime publication
+drop
+  publication if exists supabase_realtime;
+
+-- re-create the supabase_realtime publication with no tables
+create publication supabase_realtime;
+
+commit;
+
 -- create cases table
 CREATE TABLE cases (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -10,6 +21,9 @@ CREATE TABLE cases (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   closed_at timestamp with time zone DEFAULT NULL
 );
+
+alter
+  publication supabase_realtime add table cases;
 
 -- Turn on security
 alter table "cases"
@@ -36,7 +50,3 @@ create policy "Allow delete access to all"
   on cases
   for delete
   using (true);
-
-
-alter
-  publication supabase_realtime add table cases;

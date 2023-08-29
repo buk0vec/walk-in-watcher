@@ -29,9 +29,12 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
     [data]
   )
 
-  const escapeCheck = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") close()
-  }, [close])
+  const escapeCheck = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") close()
+    },
+    [close]
+  )
 
   useEffect(() => {
     if (open) {
@@ -40,10 +43,10 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
     return () => {
       window.removeEventListener("keydown", escapeCheck)
     }
-  }, [open])
+  }, [open, escapeCheck])
 
   return (
-    <FocusTrap active={open} focusTrapOptions={{escapeDeactivates: false}}>
+    <FocusTrap active={open} focusTrapOptions={{ escapeDeactivates: false }}>
       <aside
         className={cn(
           "fixed left-0 top-0 z-50 h-screen w-screen bg-[#154734]/0 fade-in-0 fade-out-0",
@@ -55,7 +58,7 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
           return true
         }}
       >
-        <div className="container mt-[5.5rem] md:mt-[6.5rem] h-fit">
+        <div className="container mt-[5.5rem] h-fit md:mt-[6.5rem]">
           <Card className=" translate-x-0 translate-y-0">
             <CardHeader>
               <div className="flex min-w-full flex-row items-start justify-between">
@@ -65,10 +68,12 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
                   tabIndex={0}
                   onClick={() => close()}
                   onKeyDown={({ key, currentTarget, target }) => {
-                    if ((key === "Enter" || key === " ") &&
-                      currentTarget === target) {
-                        close()
-                      }
+                    if (
+                      (key === "Enter" || key === " ") &&
+                      currentTarget === target
+                    ) {
+                      close()
+                    }
                     return true
                   }}
                 >
@@ -78,19 +83,14 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
               <CardDescription>{data?.username}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 grid-rows-2 gap-y-4">
+              <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-2">
                 <div>
                   <p className="mt-2 text-base text-muted-foreground">
                     Summary
                   </p>
                   <p>{data?.summary}</p>
                 </div>
-                <div>
-                  <p className="mt-2 text-base text-muted-foreground">
-                    Date Created
-                  </p>
-                  <p>{date}</p>
-                </div>
+
                 <div>
                   <p className="mt-2 text-base text-muted-foreground">Email</p>
                   <p>{`${data?.username ?? ""}${
@@ -99,9 +99,31 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
                 </div>
                 <div>
                   <p className="mt-2 text-base text-muted-foreground">
+                    Date Created
+                  </p>
+                  <p>{date}</p>
+                </div>
+                <div>
+                  <p className="mt-2 text-base text-muted-foreground">
                     Phone Number
                   </p>
                   <p>{data?.phone_number ?? "N/A"}</p>
+                </div>
+                <div>
+                  <p className="mt-2 text-base text-muted-foreground">
+                    Ticket Required
+                  </p>
+                  <p>{data?.ticket_needed ? "Yes" : "No"}</p>
+                </div>
+                <div>
+                  <p className="mt-2 text-base text-muted-foreground">
+                    Ticket Link
+                  </p>
+                  {data?.ticket_link ? (
+                    <a href={data?.ticket_link}>{data.ticket_link}</a>
+                  ) : (
+                    <p>N/A</p>
+                  )}
                 </div>
               </div>
             </CardContent>

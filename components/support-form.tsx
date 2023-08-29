@@ -72,7 +72,6 @@ export const SupportForm = () => {
   const reset = useCallback(() => {
     form.reset()
     setSuccess(false)
-    console.log("Reset")
   }, [form])
 
   /* Return to form after 20 seconds */

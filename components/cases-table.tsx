@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
 
 import { Database } from "../supabase/db_types"
+import { ActionSelector } from "./action-selector"
 import { CaseModal } from "./case-modal"
 import { Button } from "./ui/button"
 import { HorizontalScrollArea, ScrollArea } from "./ui/scroll-area"
@@ -38,7 +39,6 @@ export const CasesTable = () => {
     if (!id) return
     const c = cases.find((c) => c.id === id)
     if (c) {
-      console.log(c)
       setModalCase(c)
       setModalOpen(true)
     }
@@ -46,13 +46,26 @@ export const CasesTable = () => {
 
   const columns = [
     ch.accessor((c) => c.name, { header: "Name" }),
-    ch.accessor((c) => c.username, { header: "Username" }),
+    ch.accessor((c) => [c.username, c.id], {
+      header: "Username",
+      cell: (props) => (
+        <p
+          className="cursor-pointer underline underline-offset-1 hover:text-primary"
+          onClick={() => openModal(props.getValue()[1])}
+        >
+          {props.getValue()[0]}
+        </p>
+      ),
+    }),
 
     ch.accessor((c) => [c.summary, c.id], {
       id: "summary",
       header: "Summary",
       cell: (props) => (
-        <p className="underline underline-offset-1 hover:text-primary">
+        <p
+          className="cursor-pointer underline underline-offset-1 hover:text-primary"
+          onClick={() => openModal(props.getValue()[1])}
+        >
           {props.getValue()[0]}
         </p>
       ),
@@ -67,27 +80,17 @@ export const CasesTable = () => {
       enableColumnFilter: true,
       header: "Date Entered",
     }),
-    ch.accessor(
-      (c) => {
-        if (c.closed_at) {
-          return "Closed"
-        }
-        if (c.ticket_needed && !c.ticket_link) {
-          return "Pending"
-        }
-        if (c.ticket_needed && c.ticket_link) {
-          return "Ready to Close"
-        }
-        if (!c.ticket_needed) {
-          return "Ready to Close"
-        }
-        return "Unknown"
-      },
-      {
-        id: "status",
-        header: "Status",
-      }
-    ),
+    ch.accessor((c) => c, {
+      id: "status",
+      header: "Status",
+      cell: (props) => (
+        <ActionSelector
+          data={props.getValue()}
+          idx={props.row.index * 2 + 21}
+          key={props.getValue().id}
+        />
+      ),
+    }),
   ]
   const [cases, setCases] = useState<Case[]>([])
   const { toast } = useToast()
@@ -97,9 +100,7 @@ export const CasesTable = () => {
     columns,
     getCoreRowModel: getCoreRowModel(),
     defaultColumn: {
-      minSize: 0,
-      size: Number.MAX_SAFE_INTEGER,
-      maxSize: Number.MAX_SAFE_INTEGER,
+      size: 0,
     },
   })
 
@@ -164,6 +165,7 @@ export const CasesTable = () => {
     id: string,
     idx: number
   ) => {
+    if (e.target !== e.currentTarget) return
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault()
       e.stopPropagation()
@@ -188,11 +190,7 @@ export const CasesTable = () => {
 
   return (
     <>
-      <CaseModal
-        open={modalOpen}
-        close={close}
-        data={modalCase}
-      />
+      <CaseModal open={modalOpen} close={close} data={modalCase} />
       <HorizontalScrollArea className="w-full max-w-full rounded-md border">
         <Table>
           <TableHeader>
@@ -219,13 +217,13 @@ export const CasesTable = () => {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  onClick={() =>
+                  onClick={(e) => {
                     window.getSelection()?.type != "Range" &&
-                    openModal(row.original.id)
-                  }
-                  tabIndex={idx + 20}
+                      e.currentTarget === e.target &&
+                      openModal(row.original.id)
+                  }}
+                  tabIndex={idx * 2 + 20}
                   onKeyDown={(e) => handleKeyDown(e, row.original.id, idx)}
-                  className={"cursor-pointer"}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
