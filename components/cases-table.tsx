@@ -301,7 +301,7 @@ export const CasesTable = () => {
                                 className={cn(
                                   "transition-[transform, opacity] h-4 w-4 translate-y-4 opacity-0 duration-500 group-hover:inline-block group-hover:translate-y-0 group-hover:opacity-50 ",
                                   header.column.getIsSorted() &&
-                                    "inline-block translate-y-0 opacity-100"
+                                    "inline-block translate-y-0 opacity-100 group-hover:opacity-100"
                                 )}
                               />
                             ))}
