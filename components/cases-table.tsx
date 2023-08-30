@@ -3,15 +3,21 @@
 import { useCallback, useEffect, useState } from "react"
 import { RealtimeChannel } from "@supabase/supabase-js"
 import {
+  ColumnFiltersState,
+  Row,
+  SortingState,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
 import { createColumnHelper } from "@tanstack/table-core"
-import { ColumnFiltersState, getFilteredRowModel } from '@tanstack/react-table'
+import { ArrowDown, ArrowUp } from "lucide-react"
 import moment from "moment"
 
 import { supabase } from "@/lib/supabase"
+import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 
 import { Database } from "../supabase/db_types"
@@ -33,12 +39,19 @@ export type Case = Database["public"]["Tables"]["cases"]["Row"]
 
 const ch = createColumnHelper<Case>()
 
+const textSortFromTuple = (a: Row<Case>, b: Row<Case>, id: string) => {
+  const aVal = a.getValue(id) as string[]
+  const bVal = b.getValue(id) as string[]
+  return aVal[0].localeCompare(bVal[0])
+}
+
 export const CasesTable = () => {
   const [modalOpen, setModalOpen] = useState(false)
   const [modalCase, setModalCase] = useState<Case | null>(null)
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
-    [{id: "status", value: true}]
-  )
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
+    { id: "status", value: true },
+  ])
+  const [sorting, setSorting] = useState<SortingState>([])
   const [hideClosed, setHideClosed] = useState(true)
 
   const openModal = (id: any) => {
@@ -51,7 +64,11 @@ export const CasesTable = () => {
   }
 
   const columns = [
-    ch.accessor((c) => c.name, { header: "Name" }),
+    ch.accessor((c) => c.name, {
+      header: "Name",
+      enableSorting: true,
+      sortingFn: "text",
+    }),
     ch.accessor((c) => [c.username, c.id], {
       header: "Username",
       cell: (props) => (
@@ -62,6 +79,8 @@ export const CasesTable = () => {
           {props.getValue()[0]}
         </p>
       ),
+      enableSorting: true,
+      sortingFn: textSortFromTuple,
     }),
 
     ch.accessor((c) => [c.summary, c.id], {
@@ -75,6 +94,8 @@ export const CasesTable = () => {
           {props.getValue()[0]}
         </p>
       ),
+      enableSorting: true,
+      sortingFn: textSortFromTuple,
     }),
     ch.accessor((c) => c.phone_number, {
       id: "phone_number",
@@ -85,6 +106,8 @@ export const CasesTable = () => {
       cell: (c) => c.getValue().fromNow(),
       enableColumnFilter: true,
       header: "Date Entered",
+      enableSorting: true,
+      sortingFn: "basic",
     }),
     ch.accessor((c) => c, {
       id: "status",
@@ -101,6 +124,21 @@ export const CasesTable = () => {
           key={props.getValue().id}
         />
       ),
+      enableSorting: true,
+      sortingFn: (a, b, id) => {
+        const aVal = a.getValue(id) as Case
+        const bVal = b.getValue(id) as Case
+        if (aVal.closed_at && bVal.closed_at) {
+          return 0
+        }
+        if (aVal.closed_at) {
+          return 1
+        }
+        if (bVal.closed_at) {
+          return -1
+        }
+        return 0
+      },
     }),
   ]
   const [cases, setCases] = useState<Case[]>([])
@@ -111,13 +149,17 @@ export const CasesTable = () => {
     columns,
     defaultColumn: {
       size: 0,
+      enableSorting: false,
     },
     state: {
-      columnFilters
+      columnFilters,
+      sorting,
     },
     onColumnFiltersChange: setColumnFilters,
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
   })
 
   useEffect(() => {
@@ -204,30 +246,29 @@ export const CasesTable = () => {
 
   const close = useCallback(() => setModalOpen(false), [])
 
-  const toggleHideClosed = (() => {
-    if (columnFilters.findIndex((f) => f.id === "status") === -1) {
-      table.setColumnFilters((prev) => [...prev, {id: "status", value: !hideClosed}])
-    }
-    else {
-      table.setColumnFilters((prev) => prev.map((f) => f.id === "status" ? {...f, value: !hideClosed} : f))
-    }
+  const toggleHideClosed = () => {
+    table.getColumn("status")?.setFilterValue(!hideClosed)
     setHideClosed((prev) => !prev)
-  })
+  }
 
   return (
     <div className="w-full">
       <CaseModal open={modalOpen} close={close} data={modalCase} />
       <div className="flex w-full flex-row justify-end pb-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox id="hide-closed" onClick={() => toggleHideClosed()} checked={hideClosed} />
-            <label
-              htmlFor="hide-closed"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Hide Closed
-            </label>
-          </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="hide-closed"
+            onClick={() => toggleHideClosed()}
+            checked={hideClosed}
+          />
+          <label
+            htmlFor="hide-closed"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Hide Closed
+          </label>
         </div>
+      </div>
       <HorizontalScrollArea className="w-full max-w-full rounded-md border">
         <Table>
           <TableHeader>
@@ -236,12 +277,36 @@ export const CasesTable = () => {
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={cn(
+                            header.column.getCanSort()
+                              ? "cursor-pointer select-none"
+                              : "",
+                            "group grid grid-cols-table-header items-center gap-2"
                           )}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <p className="peer">
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                          </p>
+                          {header.column.getCanSort() &&
+                            (header.column.getIsSorted() === "asc" ? (
+                              <ArrowUp className="h-4 w-4 opacity-100" />
+                            ) : (
+                              <ArrowDown
+                                className={cn(
+                                  "transition-[transform, opacity] h-4 w-4 translate-y-4 opacity-0 duration-500 group-hover:inline-block group-hover:translate-y-0 group-hover:opacity-50 ",
+                                  header.column.getIsSorted() &&
+                                    "inline-block translate-y-0 opacity-100"
+                                )}
+                              />
+                            ))}
+                        </div>
+                      )}
                     </TableHead>
                   )
                 })}
