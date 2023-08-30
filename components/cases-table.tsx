@@ -8,6 +8,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { createColumnHelper } from "@tanstack/table-core"
+import { ColumnFiltersState, getFilteredRowModel } from '@tanstack/react-table'
 import moment from "moment"
 
 import { supabase } from "@/lib/supabase"
@@ -17,6 +18,7 @@ import { Database } from "../supabase/db_types"
 import { ActionSelector } from "./action-selector"
 import { CaseModal } from "./case-modal"
 import { Button } from "./ui/button"
+import { Checkbox } from "./ui/checkbox"
 import { HorizontalScrollArea, ScrollArea } from "./ui/scroll-area"
 import {
   Table,
@@ -34,6 +36,10 @@ const ch = createColumnHelper<Case>()
 export const CasesTable = () => {
   const [modalOpen, setModalOpen] = useState(false)
   const [modalCase, setModalCase] = useState<Case | null>(null)
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
+    [{id: "status", value: true}]
+  )
+  const [hideClosed, setHideClosed] = useState(true)
 
   const openModal = (id: any) => {
     if (!id) return
@@ -83,6 +89,11 @@ export const CasesTable = () => {
     ch.accessor((c) => c, {
       id: "status",
       header: "Status",
+      filterFn: (row, id, filterValue) => {
+        if (!filterValue) return true
+        const r = row.getValue(id) as Case
+        return !r.closed_at
+      },
       cell: (props) => (
         <ActionSelector
           data={props.getValue()}
@@ -98,10 +109,15 @@ export const CasesTable = () => {
   const table = useReactTable({
     data: cases,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     defaultColumn: {
       size: 0,
     },
+    state: {
+      columnFilters
+    },
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
   })
 
   useEffect(() => {
@@ -188,9 +204,30 @@ export const CasesTable = () => {
 
   const close = useCallback(() => setModalOpen(false), [])
 
+  const toggleHideClosed = (() => {
+    if (columnFilters.findIndex((f) => f.id === "status") === -1) {
+      table.setColumnFilters((prev) => [...prev, {id: "status", value: !hideClosed}])
+    }
+    else {
+      table.setColumnFilters((prev) => prev.map((f) => f.id === "status" ? {...f, value: !hideClosed} : f))
+    }
+    setHideClosed((prev) => !prev)
+  })
+
   return (
-    <>
+    <div className="w-full">
       <CaseModal open={modalOpen} close={close} data={modalCase} />
+      <div className="flex w-full flex-row justify-end pb-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox id="hide-closed" onClick={() => toggleHideClosed()} checked={hideClosed} />
+            <label
+              htmlFor="hide-closed"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Hide Closed
+            </label>
+          </div>
+        </div>
       <HorizontalScrollArea className="w-full max-w-full rounded-md border">
         <Table>
           <TableHeader>
@@ -248,6 +285,6 @@ export const CasesTable = () => {
           </TableBody>
         </Table>
       </HorizontalScrollArea>
-    </>
+    </div>
   )
 }

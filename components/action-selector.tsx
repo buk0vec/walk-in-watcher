@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { PostgrestError } from "@supabase/supabase-js"
-import FocusTrap from "focus-trap-react"
 import { ChevronRight } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
@@ -13,11 +12,8 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
-  DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "./ui/dialog"
-import { Input } from "./ui/input"
 import {
   Select,
   SelectContent,
@@ -161,6 +157,7 @@ export const ActionSelector = ({ data, idx }: ActionSelectorProps) => {
     setLoading(false)
   }
 
+  // Clear the link if the user clicks away
   useEffect(() => {
     if (!linkFocused && addingTicket) {
       const timeout = setTimeout(() => {
