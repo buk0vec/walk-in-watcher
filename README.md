@@ -1,22 +1,21 @@
-# next-template
+# Walk In Watcher
 
-A Next.js 13 template for building apps with Radix UI and Tailwind CSS.
+This is a full-stack application that monitors the current state of walk-ins at the ITS desk. It is a NextJS frontend w/ a Supabase backend.
 
 ## Usage
 
-```bash
-npx create-next-app -e https://github.com/shadcn/next-template
-```
+1. Clone/cd
+2. Create .env file in root dir, refer to .env.example
 
-## Features
+Frontend:
+1. `yarn`
+2. `yarn dev` or `yarn build` or `yarn start` depending on what you want to do with FE
 
-- Next.js 13 App Directory
-- Radix UI Primitives
-- Tailwind CSS
-- Icons from [Lucide](https://lucide.dev)
-- Dark mode with `next-themes`
-- Tailwind CSS class sorting, merging and linting.
+Backend:
+1. Ensure that Docker is installed along with the Supabase CLI
+2. `supabase start`
 
-## License
+## TODO:
 
-Licensed under the [MIT license](https://github.com/shadcn/ui/blob/main/LICENSE.md).
+- Better API/handling for editable fields
+- Export CSV to JSM
