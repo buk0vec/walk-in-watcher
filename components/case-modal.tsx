@@ -1,13 +1,22 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import FocusTrap from "focus-trap-react"
 import moment from "moment"
 
+import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
 
 import type { Case } from "./cases-table"
-import { Button } from "./ui/button"
+import {
+  EditableBooleanField,
+  EditableField,
+  EditableFieldValue,
+  EditableFieldsDefinition,
+  EditableTextField,
+  useEditableFields,
+} from "./editable-field"
+import { phoneNumberSchema } from "./support-form"
 import {
   Card,
   CardContent,
@@ -23,15 +32,107 @@ interface CaseModalProps {
 }
 
 export const CaseModal = ({ open, close, data }: CaseModalProps) => {
+  const [subscription, setSubscription] = useState<Case | null>(data)
+
+  const liveData = useMemo(
+    () => subscription ?? data ?? undefined,
+    [subscription, data]
+  )
+
+  const f = useMemo(() => {
+    return {
+      summary: {
+        value: liveData?.summary ?? "",
+        onChange: async (value) => {
+          console.log("Change submit")
+          const { error } = await supabase
+            .from("cases")
+            .update({ summary: value })
+            .match({ id: liveData?.id })
+        },
+      } satisfies EditableFieldValue,
+      email: {
+        value: liveData?.username ?? "",
+        onChange: async (value) => {
+          console.log("Change submit")
+          const { error } = await supabase
+            .from("cases")
+            .update({ username: value })
+            .match({ id: liveData?.id })
+        },
+      } satisfies EditableFieldValue,
+      phone: {
+        value: liveData?.phone_number ?? "",
+        onChange: async (value) => {
+          console.log("Change submit")
+          const { error } = await supabase
+            .from("cases")
+            .update({ phone_number: value })
+            .match({ id: liveData?.id })
+        },
+        constraint: phoneNumberSchema,
+      } satisfies EditableFieldValue,
+      needsTicket: {
+        value: liveData?.ticket_needed?.toString() ?? 'false',
+        onChange: async (value) => {
+          const { error } = await supabase
+            .from("cases")
+            .update({ ticket_needed: value === "true" })
+            .match({ id: liveData?.id })
+        },
+      } satisfies EditableFieldValue,
+      ticketLink: {
+        value: liveData?.ticket_link ?? "",
+        onChange: async (value) => {
+          const { error } = await supabase
+            .from("cases")
+            .update({ ticket_link: value })
+            .match({ id: liveData?.id })
+        },
+      } satisfies EditableFieldValue,
+      closed: {
+        value: liveData?.closed_at ? 'true' : 'false',
+        onChange: async (value) => {
+          const { error } = await supabase
+            .from("cases")
+            .update({ closed_at: value === "true" ? new Date().toISOString() : null })
+            .match({ id: liveData?.id })
+        }
+      } satisfies EditableFieldValue
+    } satisfies EditableFieldsDefinition
+  }, [
+    liveData?.id,
+    liveData?.summary,
+    liveData?.username,
+    liveData?.phone_number,
+    liveData?.ticket_needed,
+    liveData?.ticket_link,
+    liveData?.closed_at,
+  ])
+
+  const fields = useEditableFields(data?.id ?? "no-id", f)
+
   const date = useMemo(
     () =>
-      data ? moment(data.created_at).format("MMMM Do YYYY, h:mm:ss a") : "",
-    [data]
+      liveData?.created_at
+        ? moment(liveData.created_at).format("MMMM Do YYYY, h:mm:ss a")
+        : "",
+    [liveData?.created_at]
+  )
+
+  const closedDate = useMemo(
+    () =>
+      liveData?.closed_at
+        ? moment(liveData.closed_at).format("MMMM Do YYYY, h:mm:ss a")
+        : "N/A",
+    [liveData?.closed_at]
   )
 
   const escapeCheck = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "Escape") close()
+      if (e.key === "Escape") {
+        close()
+      }
     },
     [close]
   )
@@ -44,6 +145,32 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
       window.removeEventListener("keydown", escapeCheck)
     }
   }, [open, escapeCheck])
+
+  useEffect(() => {
+    if (!data?.id || !open) return
+    console.log(`subsribing with id=eq.${data?.id}`)
+    const channel = supabase
+      .channel("table-filter-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "cases",
+          filter: `id=eq.${data?.id}`,
+        },
+        (payload) => {
+          console.log(payload.new)
+          setSubscription(payload.new as Case)
+        }
+      )
+      .subscribe()
+    return () => {
+      console.log(`Unsub with id=eq.${data?.id}`)
+      setSubscription(null)
+      channel?.unsubscribe()
+    }
+  }, [data?.id, open])
 
   return (
     <FocusTrap active={open} focusTrapOptions={{ escapeDeactivates: false }}>
@@ -62,7 +189,9 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
           <Card className=" translate-x-0 translate-y-0">
             <CardHeader>
               <div className="flex min-w-full flex-row items-start justify-between">
-                <CardTitle>{data?.name ?? "Customer"}</CardTitle>{" "}
+                <div>
+                  <CardTitle>{liveData?.name ?? "Customer"}</CardTitle>{" "}
+                </div>
                 <p
                   className="cursor-pointer text-muted-foreground underline underline-offset-2 hover:opacity-50"
                   tabIndex={0}
@@ -80,22 +209,24 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
                   Close
                 </p>
               </div>
-              <CardDescription>{data?.username}</CardDescription>
+              <CardDescription>{liveData?.username}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-2">
-                <div>
-                  <p className="mt-2 text-base text-muted-foreground">
-                    Summary
-                  </p>
-                  <p>{data?.summary}</p>
-                </div>
+                <EditableTextField
+                  label="Summary"
+                  className="mt-2"
+                  {...fields.dynamicFieldProps.summary}
+                  {...fields.staticFieldProps.summary}
+                />
 
                 <div>
-                  <p className="mt-2 text-base text-muted-foreground">Email</p>
-                  <p>{`${data?.username ?? ""}${
-                    data?.username.includes("@") ? "" : "@calpoly.edu"
-                  }`}</p>
+                  <EditableField
+                    label="Email"
+                    className="mt-2"
+                    {...fields.dynamicFieldProps.email}
+                    {...fields.staticFieldProps.email}
+                  />
                 </div>
                 <div>
                   <p className="mt-2 text-base text-muted-foreground">
@@ -104,26 +235,41 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
                   <p>{date}</p>
                 </div>
                 <div>
-                  <p className="mt-2 text-base text-muted-foreground">
-                    Phone Number
-                  </p>
-                  <p>{data?.phone_number ?? "N/A"}</p>
+                  <EditableField
+                    label="Phone number"
+                    className="mt-2"
+                    {...fields.dynamicFieldProps.phone}
+                    {...fields.staticFieldProps.phone}
+                  />
                 </div>
-                <div>
-                  <p className="mt-2 text-base text-muted-foreground">
-                    Ticket Required
-                  </p>
-                  <p>{data?.ticket_needed ? "Yes" : "No"}</p>
-                </div>
-                <div>
+                <EditableBooleanField
+                  label="Ticket Required"
+                  className="mt-2"
+                  inputClassName="ticket-required"
+                  {...fields.dynamicFieldProps.needsTicket}
+                  {...fields.staticFieldProps.needsTicket}
+                />
+                {/* <div>
                   <p className="mt-2 text-base text-muted-foreground">
                     Ticket Link
                   </p>
-                  {data?.ticket_link ? (
-                    <a href={data?.ticket_link}>{data.ticket_link}</a>
+                  {liveData?.ticket_link ? (
+                    <a href={liveData?.ticket_link}>{liveData.ticket_link}</a>
                   ) : (
                     <p>N/A</p>
                   )}
+                </div> */}
+                <EditableField label="Ticket Link" className='mt-2' {...fields.dynamicFieldProps.ticketLink} {...fields.staticFieldProps.ticketLink} />
+                {/* <div>
+                  <p className="mt-2 text-base text-muted-foreground">Closed</p>
+                  <p>{liveData?.closed_at ? "Yes" : "No"}</p>
+                </div> */}
+                <EditableBooleanField label="Closed" className='mt-2' {...fields.dynamicFieldProps.closed} {...fields.staticFieldProps.closed} inputClassName="closed" />
+                <div>
+                  <p className="mt-2 text-base text-muted-foreground">
+                    Time Closed
+                  </p>
+                  <p>{closedDate}</p>
                 </div>
               </div>
             </CardContent>

@@ -19,8 +19,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 
-const phoneNumberSchema = z
-  .union([z.string().min(10).max(10), z.string().length(0)])
+export const phoneNumberSchema = z
+  .union([z.string().regex(/^[0-9]*$/).min(10).max(10), z.string().length(0)])
   .optional()
   .transform((e) => (e === "" ? undefined : e))
 

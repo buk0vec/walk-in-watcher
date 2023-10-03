@@ -23,10 +23,19 @@ import {
 } from "./ui/select"
 import { useToast } from "./ui/use-toast"
 
-interface ActionSelectorProps {
+type ActionSelectorControlledProps = {
   data: Case
-  idx: number
 }
+
+type ActionSelectorSubscribeProps = {
+  data: Case
+}
+
+type Prettify<T> = {
+  [K in keyof T]: T[K];
+} & {};
+
+type ActionSelectorProps = Prettify<{idx: number} & (ActionSelectorControlledProps | ActionSelectorSubscribeProps)>
 
 /*
   closed: closed ticket
@@ -42,6 +51,7 @@ export const ActionSelector = ({ data, idx }: ActionSelectorProps) => {
   const [modalOpen, setModalOpen] = useState(false)
   const [modalType, setModalType] = useState<string>("")
   const [link, setLink] = useState<string>("")
+  const [caseData, setCaseData] = useState<Case | null>(null)
 
   const { toast } = useToast()
   const status = useMemo(() => {
@@ -119,6 +129,7 @@ export const ActionSelector = ({ data, idx }: ActionSelectorProps) => {
         .update({ ticket_needed: true })
         .match({ id: data.id })
       error = req.error
+      setLoading(false)
     } else if (value === "ticket") {
       setLoading(false)
       setAddingTicket(true)
@@ -138,8 +149,7 @@ export const ActionSelector = ({ data, idx }: ActionSelectorProps) => {
   }
 
   const addTicket = async () => {
-    console.log("Adding ticket...")
-    if (!link) return
+    if (link === undefined) return;
     setAddingTicket(false)
     setLoading(true)
     const { error } = await supabase
