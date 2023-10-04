@@ -18,4 +18,6 @@ Backend:
 ## TODO:
 
 - Better API/handling for editable fields
+- Field for adding a component
+- Field for adding an Assignee
 - Export CSV to JSM
