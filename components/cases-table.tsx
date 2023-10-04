@@ -34,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table"
+import { downloadCases } from "@/lib/csv"
 
 export type Case = Database["public"]["Tables"]["cases"]["Row"]
 
@@ -254,7 +255,8 @@ export const CasesTable = () => {
   return (
     <div className="w-full">
       <CaseModal open={modalOpen} close={close} data={modalCase} />
-      <div className="flex w-full flex-row justify-end pb-4">
+      <div className="flex w-full flex-row justify-between pb-4">
+        <Button variant='outline' onClick={() => downloadCases(cases)}>Export to CSV</Button>
         <div className="flex items-center space-x-2">
           <Checkbox
             id="hide-closed"
