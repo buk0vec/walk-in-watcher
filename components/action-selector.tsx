@@ -51,7 +51,6 @@ export const ActionSelector = ({ data, idx }: ActionSelectorProps) => {
   const [modalOpen, setModalOpen] = useState(false)
   const [modalType, setModalType] = useState<string>("")
   const [link, setLink] = useState<string>("")
-  const [caseData, setCaseData] = useState<Case | null>(null)
 
   const { toast } = useToast()
   const status = useMemo(() => {

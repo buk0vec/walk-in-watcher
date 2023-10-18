@@ -34,9 +34,29 @@ export interface Database {
   }
   public: {
     Tables: {
+      agents: {
+        Row: {
+          id: string
+          name: string | null
+          username: string
+        }
+        Insert: {
+          id?: string
+          name?: string | null
+          username: string
+        }
+        Update: {
+          id?: string
+          name?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
       cases: {
         Row: {
+          assignee: string | null
           closed_at: string | null
+          component: string | null
           created_at: string
           id: string
           name: string | null
@@ -47,7 +67,9 @@ export interface Database {
           username: string
         }
         Insert: {
+          assignee?: string | null
           closed_at?: string | null
+          component?: string | null
           created_at?: string
           id?: string
           name?: string | null
@@ -58,7 +80,9 @@ export interface Database {
           username: string
         }
         Update: {
+          assignee?: string | null
           closed_at?: string | null
+          component?: string | null
           created_at?: string
           id?: string
           name?: string | null

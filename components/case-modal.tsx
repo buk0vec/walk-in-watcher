@@ -7,7 +7,9 @@ import moment from "moment"
 import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
 
+import { AgentSelector } from "./agent-selector"
 import type { Case } from "./cases-table"
+import { ComponentSelector } from "./component-selector"
 import {
   EditableBooleanField,
   EditableField,
@@ -73,7 +75,7 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
         constraint: phoneNumberSchema,
       } satisfies EditableFieldValue,
       needsTicket: {
-        value: liveData?.ticket_needed?.toString() ?? 'false',
+        value: liveData?.ticket_needed?.toString() ?? "false",
         onChange: async (value) => {
           const { error } = await supabase
             .from("cases")
@@ -91,14 +93,16 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
         },
       } satisfies EditableFieldValue,
       closed: {
-        value: liveData?.closed_at ? 'true' : 'false',
+        value: liveData?.closed_at ? "true" : "false",
         onChange: async (value) => {
           const { error } = await supabase
             .from("cases")
-            .update({ closed_at: value === "true" ? new Date().toISOString() : null })
+            .update({
+              closed_at: value === "true" ? new Date().toISOString() : null,
+            })
             .match({ id: liveData?.id })
-        }
-      } satisfies EditableFieldValue
+        },
+      } satisfies EditableFieldValue,
     } satisfies EditableFieldsDefinition
   }, [
     liveData?.id,
@@ -173,7 +177,11 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
   }, [data?.id, open])
 
   return (
-    <FocusTrap active={open} focusTrapOptions={{ escapeDeactivates: false }}>
+    <FocusTrap
+      paused={true}
+      active={false}
+      focusTrapOptions={{ escapeDeactivates: false }}
+    >
       <aside
         className={cn(
           "fixed left-0 top-0 z-50 h-screen w-screen bg-[#154734]/0 fade-in-0 fade-out-0",
@@ -249,27 +257,38 @@ export const CaseModal = ({ open, close, data }: CaseModalProps) => {
                   {...fields.dynamicFieldProps.needsTicket}
                   {...fields.staticFieldProps.needsTicket}
                 />
-                {/* <div>
-                  <p className="mt-2 text-base text-muted-foreground">
-                    Ticket Link
-                  </p>
-                  {liveData?.ticket_link ? (
-                    <a href={liveData?.ticket_link}>{liveData.ticket_link}</a>
-                  ) : (
-                    <p>N/A</p>
-                  )}
-                </div> */}
-                <EditableField label="Ticket Link" className='mt-2' {...fields.dynamicFieldProps.ticketLink} {...fields.staticFieldProps.ticketLink} />
-                {/* <div>
-                  <p className="mt-2 text-base text-muted-foreground">Closed</p>
-                  <p>{liveData?.closed_at ? "Yes" : "No"}</p>
-                </div> */}
-                <EditableBooleanField label="Closed" className='mt-2' {...fields.dynamicFieldProps.closed} {...fields.staticFieldProps.closed} inputClassName="closed" />
+                <EditableField
+                  label="Ticket Link"
+                  className="mt-2"
+                  {...fields.dynamicFieldProps.ticketLink}
+                  {...fields.staticFieldProps.ticketLink}
+                />
+                <EditableBooleanField
+                  label="Closed"
+                  className="mt-2"
+                  {...fields.dynamicFieldProps.closed}
+                  {...fields.staticFieldProps.closed}
+                  inputClassName="closed"
+                />
                 <div>
                   <p className="mt-2 text-base text-muted-foreground">
                     Time Closed
                   </p>
                   <p>{closedDate}</p>
+                </div>
+                <div>
+                  <p className="mt-2 text-base text-muted-foreground">
+                    Component
+                  </p>
+                  {liveData && <ComponentSelector data={liveData} idx={0} />}
+                </div>
+                <div>
+                  <p className="mt-2 text-base text-muted-foreground">
+                    Assignee
+                  </p>
+                  {liveData && (
+                    <AgentSelector data={liveData} key={liveData.id} />
+                  )}
                 </div>
               </div>
             </CardContent>

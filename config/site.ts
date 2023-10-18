@@ -12,6 +12,10 @@ export const siteConfig = {
     {
       title: "Form",
       href: "/form",
+    },
+    {
+      title: "Config",
+      href: "/config"
     }
   ],
   links: {

@@ -1,5 +1,6 @@
 "use client"
 
+import { start } from "repl"
 import { useCallback, useEffect, useState } from "react"
 import { RealtimeChannel } from "@supabase/supabase-js"
 import {
@@ -13,9 +14,11 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { createColumnHelper } from "@tanstack/table-core"
-import { ArrowDown, ArrowUp } from "lucide-react"
+import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react"
 import moment from "moment"
+import { DateRange } from "react-day-picker"
 
+import { downloadCases } from "@/lib/csv"
 import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
@@ -23,9 +26,18 @@ import { useToast } from "@/components/ui/use-toast"
 import { Database } from "../supabase/db_types"
 import { ActionSelector } from "./action-selector"
 import { CaseModal } from "./case-modal"
+import { DateRangePicker } from "./date-range-picker"
 import { Button } from "./ui/button"
+import { Calendar } from "./ui/calendar"
 import { Checkbox } from "./ui/checkbox"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "./ui/collapsible"
+import { Label } from "./ui/label"
 import { HorizontalScrollArea, ScrollArea } from "./ui/scroll-area"
+import { Switch } from "./ui/switch"
 import {
   Table,
   TableBody,
@@ -34,7 +46,6 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table"
-import { downloadCases } from "@/lib/csv"
 
 export type Case = Database["public"]["Tables"]["cases"]["Row"]
 
@@ -54,6 +65,11 @@ export const CasesTable = () => {
   ])
   const [sorting, setSorting] = useState<SortingState>([])
   const [hideClosed, setHideClosed] = useState(true)
+  const [removeTicketed, setRemoveTicketed] = useState(true)
+  const [removeClosed, setRemoveClosed] = useState(true)
+  const [removeNoTicketNeeded, setRemoveNoTicketNeeded] = useState(true)
+  const [usingRange, setUsingRange] = useState(false)
+  const [range, setRange] = useState<DateRange | undefined>(undefined)
 
   const openModal = (id: any) => {
     if (!id) return
@@ -256,8 +272,92 @@ export const CasesTable = () => {
     <div className="w-full">
       <CaseModal open={modalOpen} close={close} data={modalCase} />
       <div className="flex w-full flex-row justify-between pb-4">
-        <Button variant='outline' onClick={() => downloadCases(cases)}>Export to CSV</Button>
-        <div className="flex items-center space-x-2">
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline">
+              Download <ChevronsUpDown size={16} className="pl-1" />{" "}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 rounded-md border p-4">
+            <div className="flex items-center space-x-2">
+              <Label
+                htmlFor="use-range"
+                className={cn(!usingRange && "font-bold")}
+              >
+                Download all cases
+              </Label>
+              <Switch
+                id="use-range"
+                checked={usingRange}
+                onCheckedChange={setUsingRange}
+              />
+              <Label
+                htmlFor="use-range"
+                className={cn(usingRange && "font-bold")}
+              >
+                Download cases in range
+              </Label>
+            </div>
+            {usingRange && (
+              <div>
+                <DateRangePicker className="mt-2" range={range} onChange={setRange} />
+              </div>
+            )}
+            <div className="flex items-baseline space-x-2">
+              <Label htmlFor="remove-ticketed" className="mt-4 block">
+                Do not include cases with tickets
+              </Label>
+              <Checkbox
+                id="remove-ticketed"
+                onClick={() => setRemoveTicketed((old) => !old)}
+                checked={removeTicketed}
+              />
+            </div>
+            <div className="flex items-baseline space-x-2">
+              <Label htmlFor="remove-closed" className="mt-4 block">
+                Do not include cases that do not need tickets
+              </Label>
+              <Checkbox
+                id="remove-closed"
+                onClick={() => setRemoveNoTicketNeeded((old) => !old)}
+                checked={removeNoTicketNeeded}
+              />
+            </div>
+            <div className="flex items-baseline space-x-2">
+              <Label htmlFor="remove-closed" className="mt-4 block">
+                Do not include closed cases
+              </Label>
+              <Checkbox
+                id="remove-closed"
+                onClick={() => setRemoveClosed((old) => !old)}
+                checked={removeClosed}
+              />
+            </div>
+
+            <Button
+              variant="default"
+              className="mt-2"
+              onClick={() => {
+                downloadCases(cases, {
+                  useDateRange: usingRange,
+                  removeClosed,
+                  removeNoTicketNeeded,
+                  removeTicketed,
+                  range,
+                }).catch((e) => {
+                  toast({
+                    title: "Error downloading cases",
+                    description: e.message,
+                    variant: "destructive",
+                  })
+                })
+              }}
+            >
+              Export to CSV
+            </Button>
+          </CollapsibleContent>
+        </Collapsible>
+        <div className="flex items-center space-x-2 self-end">
           <Checkbox
             id="hide-closed"
             onClick={() => toggleHideClosed()}

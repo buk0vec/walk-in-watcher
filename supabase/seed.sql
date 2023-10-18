@@ -11,3 +11,5 @@ VALUES
     ('user8', NULL, '2223334444', 'Software freezing issue', true, 'https://example.com/ticket/8', NOW() - INTERVAL '9 days', NOW() - INTERVAL '7 days'),
     ('user9', 'Sophia Taylor', NULL, 'Data recovery needed', false, NULL, NOW() - INTERVAL '10 days', NULL),
     ('user10', 'Liam Anderson', '9990001111', 'Network configuration problem', true, NULL, NOW() - INTERVAL '11 days', NOW() - INTERVAL '9 days');
+
+INSERT INTO agents (username, name) values ('nbukovec', 'Nick Bukovec'), ('bpritcha', 'Borden');

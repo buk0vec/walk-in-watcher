@@ -19,7 +19,9 @@ CREATE TABLE cases (
   ticket_needed boolean DEFAULT true,
   ticket_link text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
-  closed_at timestamp with time zone DEFAULT NULL
+  closed_at timestamp with time zone DEFAULT NULL,
+  component text,
+  assignee text
 );
 
 alter
